@@ -1,0 +1,30 @@
+import pandas as pd
+import numpy as np
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import BernoulliNB
+data = pd.read_csv("https://raw.githubusercontent.com/amankharwal/SMS-Spam-Detection/master/spam.csv", encoding= 'latin-1')
+data = data[["class", "message"]]
+
+x = np.array(data["message"])
+y = np.array(data["class"])
+#perform vector matrix
+cv = CountVectorizer()
+x = cv.fit_transform(x)
+
+xtrain, xtest, ytrain, ytest = train_test_split(x, y, test_size=0.33, random_state=42)
+
+model = BernoulliNB(binarize=0.0)
+# model.fit(xtrain, ytrain)#train the model accoring to bernoulliNB
+# print(model.score(xtest, ytest))#acccuracy
+model.fit(xtrain, ytrain)
+
+# predicting test set results
+y_pred = model.predict(xtest)
+
+# making the confusion matrix
+cm = confusion_matrix(ytest, y_pred)
+print(cm)
+cr =classification_report(ytest, y_pred)
+print(cr)
