@@ -1,0 +1,75 @@
+#Genetic plus SVM 
+
+from sklearn import svm
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import load_iris
+from sklearn.metrics import accuracy_score
+from sklearn.utils import shuffle
+import numpy as np
+import random
+
+# Define the fitness function for the genetic algorithm
+def fitness_function(X_train, y_train, X_test, y_test, individual):
+    # Extract the indices of the selected features
+    indices = [i for i in range(len(individual)) if individual[i] == 1]
+    # If no feature is selected, return a fitness of 0
+    if len(indices) == 0:
+        return 0,
+    # Train an SVM classifier using the selected features
+    clf = svm.SVC(kernel='rbf', C=10, gamma=0.1)
+    clf.fit(X_train[:, indices], y_train)
+    # Compute the accuracy of the classifier on the test set
+    y_pred = clf.predict(X_test[:, indices])
+    accuracy = accuracy_score(y_test, y_pred)
+    return accuracy,
+
+# Define the genetic algorithm
+def genetic_algorithm(X_train, y_train, X_test, y_test, population_size=100, generations=100):
+    # Initialize the population randomly
+    population = np.random.randint(2, size=(population_size, X_train.shape[1]))
+    # Evaluate the fitness of the initial population
+    fitness = [fitness_function(X_train, y_train, X_test, y_test, individual) for individual in population]
+    # Keep track of the best individual and its fitness
+    best_individual = population[np.argmax(fitness)]
+    best_fitness = np.max(fitness)
+    # Iterate over the generations
+    for generation in range(generations):
+        # Select the parents for the next generation
+        parents = selection(population, fitness)
+        # Create the offspring for the next generation
+        offspring = crossover(parents)
+        # Mutate the offspring
+        offspring = mutation(offspring)
+        # Evaluate the fitness of the offspring
+        offspring_fitness = [fitness_function(X_train, y_train, X_test, y_test, individual) for individual in offspring]
+        # Replace the worst individuals in the population with the offspring
+        population, fitness = replace(population, fitness, offspring, offspring_fitness)
+        # Update the best individual and its fitness
+        if np.max(fitness) > best_fitness:
+            best_individual = population[np.argmax(fitness)]
+            best_fitness = np.max(fitness)
+        # Print the progress every 10 generations
+        if generation % 10 == 0:
+            print("Generation {}: Best Fitness = {}".format(generation, best_fitness))
+    # Train an SVM classifier using the best individual
+    indices = [i for i in range(len(best_individual)) if best_individual[i] == 1]
+    clf = svm.SVC(kernel='rbf', C=10, gamma=0.1)
+    clf.fit(X_train[:, indices], y_train)
+    # Compute the accuracy of the classifier on the test set
+    y_pred = clf.predict(X_test[:, indices])
+    accuracy = accuracy_score(y_test, y_pred)
+    print("Test Accuracy = {}".format(accuracy))
+
+# Load the dataset
+iris = load_iris()
+X, y = iris.data, iris.target
+# Split the dataset into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# Normalize the data
+X_train, X_test = normalize(X_train, X_test)
+# Shuffle the training set
+X_train, y_train = shuffle(X_train, y_train, random_state=42)
+# Run the genetic algorithm
+genetic_algorithm(X_train, y_train, X_test, y_test)
+
